@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isGovernment() {
+      return isSignedIn() && getUserData().role == 'government';
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); // Allow creation after auth
+      allow update: if isOwner(userId);
+    }
+
+    // Broadcasts
+    match /broadcasts/{broadcastId} {
+      allow read: if true; // Everyone can see news and alerts
+      allow write: if isGovernment();
+    }
+
+    // SOS Alerts
+    match /sosAlerts/{alertId} {
+      allow read: if isGovernment() || isOwner(resource.data.uid);
+      allow create: if isSignedIn();
+      allow update: if isGovernment() || isOwner(resource.data.uid);
+    }
+
+    // Civilian Locations (Privacy focus)
+    match /civilianLocations/{userId} {
+      allow read: if isGovernment() || isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // Resources
+    match /resources/{resourceId} {
+      allow read: if isSignedIn();
+      allow write: if isGovernment();
+    }
+
+    // Infrastructure Reports
+    match /infrastructureReports/{reportId} {
+      allow read: if isGovernment() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isGovernment();
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Sahara",
+  "description": "AI-powered disaster response platform for India connecting civilians and government officials.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ],
+  "majorCapabilities": []
+}
