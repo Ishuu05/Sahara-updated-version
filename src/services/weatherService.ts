@@ -2,6 +2,7 @@ export interface WeatherData {
   temp: number;
   wind: number;
   conditionCode: number;
+  locationName?: string;
   forecast: {
     date: string;
     max: number;
@@ -15,8 +16,9 @@ const WEATHER_CACHE_KEY = 'sahara_weather_cache';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 export async function fetchWeather(lat: number, lng: number): Promise<WeatherData> {
+  const cacheKey = `${WEATHER_CACHE_KEY}_${lat.toFixed(2)}_${lng.toFixed(2)}`;
   // Check cache
-  const cached = localStorage.getItem(WEATHER_CACHE_KEY);
+  const cached = localStorage.getItem(cacheKey);
   if (cached) {
     const { data, timestamp } = JSON.parse(cached);
     if (Date.now() - timestamp < CACHE_TTL) {
@@ -25,15 +27,25 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=Asia%2FKolkata&forecast_days=5`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Weather API failed');
-    const result = await response.json();
+    const [weatherRes, geoRes] = await Promise.all([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=Asia%2FKolkata&forecast_days=5`),
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+    ]);
+
+    if (!weatherRes.ok) throw new Error('Weather API failed');
+    const result = await weatherRes.json();
+    
+    let locationName = 'Unknown Location';
+    if (geoRes.ok) {
+      const geoResult = await geoRes.json();
+      locationName = geoResult.address.city || geoResult.address.town || geoResult.address.village || geoResult.address.suburb || 'My Location';
+    }
 
     const data: WeatherData = {
       temp: result.current_weather.temperature,
       wind: result.current_weather.windspeed,
       conditionCode: result.current_weather.weathercode,
+      locationName,
       forecast: result.daily.time.map((date: string, i: number) => ({
         date,
         max: result.daily.temperature_2m_max[i],
@@ -44,7 +56,7 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
     };
 
     // Save to cache
-    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({
+    localStorage.setItem(cacheKey, JSON.stringify({
       data,
       timestamp: Date.now()
     }));

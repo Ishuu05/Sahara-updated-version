@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Newspaper, CloudRain, AlertTriangle, Package, ExternalLink, RefreshCw, ChevronRight, MapPin } from 'lucide-react';
+import { Newspaper, CloudRain, AlertTriangle, Package, ExternalLink, RefreshCw, ChevronRight, MapPin, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchNews, NewsArticle } from '../../services/newsService';
 import { fetchWeather, WeatherData, getWeatherIcon, getWeatherCondition } from '../../services/weatherService';
 import { subscribeToBroadcasts, subscribeToResources } from '../../services/firestoreService';
-import { useLocation } from '../../hooks/useLocation';
+import { useLocationContext } from '../../context/LocationContext';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { SkeletonGrid } from '../../components/common/SkeletonCard';
 import { clsx } from 'clsx';
@@ -18,14 +18,42 @@ export const NewsScreen: React.FC = () => {
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const location = useLocationContext();
+  const locationKey = `${location.lat.toFixed(2)}_${location.lng.toFixed(2)}`;
 
   useEffect(() => {
-    loadData();
+    const loadBasicData = async () => {
+      setLoading(true);
+      try {
+        const newsData = await fetchNews();
+        setNews(newsData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!location.loading) setLoading(false);
+      }
+    };
+
+    loadBasicData();
     const unsubB = subscribeToBroadcasts(setBroadcasts);
     const unsubR = subscribeToResources(setResources);
     return () => { unsubB(); unsubR(); };
   }, []);
+
+  useEffect(() => {
+    const loadWeather = async () => {
+      if (location.loading) return;
+      try {
+        const weatherData = await fetchWeather(location.lat, location.lng);
+        setWeather(weatherData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadWeather();
+  }, [locationKey, location.loading]);
 
   const loadData = async () => {
     setLoading(true);
@@ -120,15 +148,21 @@ export const NewsScreen: React.FC = () => {
               )}
 
               {/* WEATHER TAB */}
-              {activeTab === 'weather' && weather && (
-                <div className="space-y-6">
-                  {/* Current Weather Card */}
-                  <div className="bg-primary p-8 rounded-[40px] text-white shadow-xl shadow-primary/20 relative overflow-hidden">
+              {activeTab === 'weather' && (
+                !weather ? (
+                  <div className="flex flex-col items-center justify-center py-32 text-text-secondary bg-surface rounded-[40px] border border-border">
+                    <Loader2 className="animate-spin mb-4" size={32} />
+                    <p className="font-black uppercase tracking-[0.2em] text-[10px]">Syncing Weather & Location...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Current Weather Card */}
+                    <div className="bg-primary p-8 rounded-[40px] text-white shadow-xl shadow-primary/20 relative overflow-hidden">
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-6">
                          <div>
                             <h3 className="text-xs font-black opacity-80 uppercase tracking-[0.25em] flex items-center gap-2">
-                              <MapPin size={12} /> My Location
+                              <MapPin size={12} /> {weather.locationName || 'My Location'}
                             </h3>
                             <p className="text-7xl font-black mt-2 tracking-tighter leading-none">{Math.round(weather.temp)}°</p>
                          </div>
@@ -167,7 +201,7 @@ export const NewsScreen: React.FC = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              ))}
 
               {/* NEWS TAB */}
               {activeTab === 'news' && (

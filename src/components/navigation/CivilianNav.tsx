@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Map, MessageSquare, Newspaper, ShieldAlert } from 'lucide-react';
+import { Home, Map, MessageSquare, Package, ShieldAlert } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const CivilianNav: React.FC = () => {
@@ -8,7 +8,7 @@ export const CivilianNav: React.FC = () => {
     { to: '/civilian/home', icon: Home, label: 'Home' },
     { to: '/civilian/map', icon: Map, label: 'Map' },
     { to: '/civilian/chat', icon: MessageSquare, label: 'AI Help' },
-    { to: '/civilian/news', icon: Newspaper, label: 'Updates' },
+    { to: '/civilian/resources', icon: Package, label: 'Resources' },
     { to: '/civilian/sos', icon: ShieldAlert, label: 'SOS', isSpecial: true },
   ];
 

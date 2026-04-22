@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AccessibilityProvider } from './context/AccessibilityContext';
+import { LocationProvider } from './context/LocationContext';
 import { OfflineBanner } from './components/common/OfflineBanner';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { CivilianNav } from './components/navigation/CivilianNav';
@@ -19,6 +20,7 @@ import { CompleteProfileScreen } from './screens/auth/CompleteProfileScreen';
 import { HomeScreen } from './screens/civilian/HomeScreen';
 import { ChatbotScreen } from './screens/civilian/ChatbotScreen';
 import { NewsScreen } from './screens/civilian/NewsScreen';
+import { ResourcesScreen } from './screens/civilian/ResourcesScreen';
 import { ImageUploaderScreen } from './screens/civilian/ImageUploaderScreen';
 import { SOSScreen } from './screens/civilian/SOSScreen';
 
@@ -58,7 +60,8 @@ function App() {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AccessibilityProvider>
-        <AuthProvider>
+        <LocationProvider>
+          <AuthProvider>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SplashScreen />} />
@@ -84,6 +87,7 @@ function App() {
               } />
               <Route path="chat" element={<ChatbotScreen />} />
               <Route path="news" element={<NewsScreen />} />
+              <Route path="resources" element={<ResourcesScreen />} />
               <Route path="upload" element={<ImageUploaderScreen />} />
               <Route path="sos" element={<SOSScreen />} />
             </Route>
@@ -112,8 +116,9 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
-      </AccessibilityProvider>
-    </Router>
+      </LocationProvider>
+    </AccessibilityProvider>
+  </Router>
   );
 }
 

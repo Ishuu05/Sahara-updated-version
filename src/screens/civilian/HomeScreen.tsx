@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Map, MessageSquare, Newspaper, Camera, ShieldAlert, Package, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Bell, Map, MessageSquare, Newspaper, Camera, ShieldAlert, Package, ChevronRight, AlertTriangle, CheckCircle, Cloud, Wind } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '../../context/AuthContext';
+import { useLocationContext } from '../../context/LocationContext';
+import { fetchWeather, WeatherData, getWeatherIcon, getWeatherCondition } from '../../services/weatherService';
 import { subscribeToBroadcasts } from '../../services/firestoreService';
 import { formatRelativeDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -10,7 +12,9 @@ import { UserMenu } from '../../components/navigation/UserMenu';
 
 export const HomeScreen: React.FC = () => {
   const { profile } = useAuthContext();
+  const { lat, lng, loading: locLoading } = useLocationContext();
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +24,19 @@ export const HomeScreen: React.FC = () => {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    const loadWeather = async () => {
+      if (locLoading) return;
+      try {
+        const data = await fetchWeather(lat, lng);
+        setWeather(data);
+      } catch (err) {
+        console.error("Home weather error:", err);
+      }
+    };
+    loadWeather();
+  }, [lat, lng, locLoading]);
+
   const activeDisaster = broadcasts.find(b => b.severity === 'Danger' || b.severity === 'Warning');
 
   const menuItems = [
@@ -28,7 +45,7 @@ export const HomeScreen: React.FC = () => {
     { id: 'news', label: 'Live Updates', icon: Newspaper, color: 'bg-primary/10 text-primary', path: '/civilian/news' },
     { id: 'upload', label: 'Report Damage', icon: Camera, color: 'bg-primary/10 text-primary', path: '/civilian/upload' },
     { id: 'sos', label: 'SOS Emergency', icon: ShieldAlert, color: 'bg-danger text-white', path: '/civilian/sos', isSpecial: true },
-    { id: 'resources', label: 'Resources', icon: Package, color: 'bg-primary/10 text-primary', path: '/civilian/news' },
+    { id: 'resources', label: 'Resources', icon: Package, color: 'bg-primary/10 text-primary', path: '/civilian/resources' },
   ];
 
   return (
@@ -79,6 +96,42 @@ export const HomeScreen: React.FC = () => {
                 VIEW ON MAP <ChevronRight size={14} className="ml-1" />
               </div>
             )}
+          </div>
+        </motion.div>
+
+        {/* Weather Widget */}
+        <motion.div
+           initial={{ y: 20, opacity: 0 }}
+           animate={{ y: 0, opacity: 1 }}
+           transition={{ delay: 0.1 }}
+           onClick={() => navigate('/civilian/news')}
+           className="bg-surface p-5 rounded-[32px] border border-border flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">
+              {weather ? getWeatherIcon(weather.conditionCode) : <Cloud className="text-primary animate-pulse" size={24} />}
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-0.5">
+                {weather?.locationName || (locLoading ? 'Locating...' : 'Weather')}
+              </p>
+              <p className="text-lg font-black text-text">
+                {weather ? `${Math.round(weather.temp)}°C` : '--°C'} 
+                <span className="text-text-secondary font-bold text-sm ml-2">
+                  {weather ? getWeatherCondition(weather.conditionCode) : '...'}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+             <div className="flex items-center gap-1 text-primary font-black text-[10px] uppercase tracking-widest">
+               Details <ChevronRight size={12} />
+             </div>
+             {weather && (
+               <p className="text-[10px] font-bold text-text-secondary mt-1 flex items-center justify-end gap-1">
+                 <Wind size={10} /> {weather.wind} km/h
+               </p>
+             )}
           </div>
         </motion.div>
 

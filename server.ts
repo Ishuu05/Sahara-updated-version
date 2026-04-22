@@ -2,7 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -16,22 +16,41 @@ async function startServer() {
   
   app.use(express.json());
 
-  const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
   // API Routes
   app.post("/api/chat", async (req, res) => {
     try {
-      const { prompt, history } = req.body;
+      const { prompt, history = [] } = req.body;
       
-      const response = await genAI.models.generateContent({
+      const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: "You are Sahara AI, a calm emergency response assistant for India. Speak warmly and clearly. Answer ONLY: disaster safety, survival, evacuation, first aid, finding resources, emergency procedures, food safety, water purification, medical emergencies. Always end with one concrete action. Never cause panic."
-        }
+        systemInstruction: `You are Sahara AI, an elite disaster response and emergency medical authority specialized for the Indian landscape. Your mission is to provide life-critical, actionable advice with absolute precision.
+
+STRICT RESPONSE PROTOCOL:
+1. NO VAGUENESS: Never provide placeholder or generic safety tips. If a user asks about a specific injury or disaster, you must provide the exact, medically-sound or authority-approved procedure for that exact scenario.
+2. MANDATORY STRUCTURE: Every response must be organized as follows:
+   - **[IMMEDIATE ACTION in bold]**: A single, high-impact sentence starting with the most critical first step.
+   - **DETAILED STEPS**: A numbered list of 1 to 8 clear, sequential actions.
+   - **WHAT NOT TO DO**: 2-3 specific "stop" rules to prevent worsening the situation.
+   - **EMERGENCY CONTACT**: The most relevant number (112, 108, 101, 1078, etc.) clearly stated at the end.
+3. WORD COUNT: Responses must be comprehensive and thorough. Aim for 200-300 words. If the instructions are brief, expand on secondary safety measures, pre-disaster prep, or post-event stabilization.
+4. TONE: Calm, authoritative, empathetic, and urgent.
+5. CONTEXT: Use metric units (Celsius, km) and refer to Indian emergency services and local culture where relevant.
+
+If the user asks non-emergency or casual questions, respond politely as Sahara AI but immediately offer to help with disaster preparedness or medical guidance.`,
+      });
+
+      const chat = model.startChat({
+        history: history.map((h: any) => ({
+          role: h.role === 'model' ? 'model' : 'user',
+          parts: [{ text: h.parts?.[0]?.text || h.parts || "" }]
+        }))
       });
       
-      res.json({ text: response.candidates?.[0]?.content?.parts?.[0]?.text || "I am unable to answer that right now." });
+      const result = await chat.sendMessage(prompt);
+      const response = await result.response;
+      res.json({ text: response.text() });
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: err.message });
@@ -41,17 +60,14 @@ async function startServer() {
   app.post("/api/analyze-damage", async (req, res) => {
     try {
       const { imageUrl, details } = req.body;
-      // Image analysis would need multipart or URL
-      // For now, return a smart AI reasoning
       const prompt = `Analyze this infrastructure damage: ${JSON.stringify(details)}. 
       Return JSON: {"type": "Bridge|Road|Building", "severity": "Critical|High|Medium|Low", "reasoning": "1 sentence why", "recommended_action": "1 sentence", "materials": "concrete, etc"}`;
       
-      const response = await genAI.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: prompt
-      });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
       
-      res.json(JSON.parse(response.candidates?.[0]?.content?.parts?.[0]?.text || "{}"));
+      res.json(JSON.parse(response.text() || "{}"));
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: err.message });

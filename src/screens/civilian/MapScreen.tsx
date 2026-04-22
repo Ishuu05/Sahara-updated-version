@@ -32,14 +32,41 @@ const MapScreen: React.FC = () => {
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [hasLoadedMap, setHasLoadedMap] = useState(false);
   const [needsInteraction, setNeedsInteraction] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Initialize Map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    // Default India center
+    let initialCenter: [number, number] = [20.5937, 78.9629];
+    let initialZoom = 5;
+    let isLastKnown = false;
+
+    if (!navigator.onLine) {
+      const saved = localStorage.getItem('sahara_last_location');
+      if (saved) {
+        const { lat, lng } = JSON.parse(saved);
+        initialCenter = [lat, lng];
+        initialZoom = 13;
+        isLastKnown = true;
+      }
+    }
+
     mapRef.current = L.map(containerRef.current, {
-      center: [currentLocation.lat, currentLocation.lng],
-      zoom: 5,
+      center: initialCenter,
+      zoom: initialZoom,
       zoomControl: false,
       ...({ tap: false } as any),
     });
@@ -47,6 +74,18 @@ const MapScreen: React.FC = () => {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
     }).addTo(mapRef.current);
+
+    if (isLastKnown && mapRef.current) {
+      L.circleMarker(initialCenter, {
+        radius: 10,
+        fillColor: '#FBBC04',
+        color: '#ffffff',
+        weight: 3,
+        fillOpacity: 1
+      }).addTo(mapRef.current)
+       .bindPopup('📍 Last known location (offline)')
+       .openPopup();
+    }
 
     zonesLayerRef.current = L.layerGroup().addTo(mapRef.current);
     setHasLoadedMap(true);
@@ -60,6 +99,15 @@ const MapScreen: React.FC = () => {
   }, []);
 
   const locateUser = () => {
+    if (!navigator.onLine) {
+      const saved = localStorage.getItem('sahara_last_location');
+      if (saved && mapRef.current) {
+        const { lat, lng } = JSON.parse(saved);
+        mapRef.current.flyTo([lat, lng], 13);
+      }
+      return;
+    }
+
     setNeedsInteraction(false);
     setLocationLoading(true);
     setLocationError(null);
@@ -70,6 +118,14 @@ const MapScreen: React.FC = () => {
         setCurrentLocation({ lat: latitude, lng: longitude });
         setLocationLoading(false);
         
+        // Save to localStorage
+        localStorage.setItem('sahara_last_location', JSON.stringify({
+          lat: latitude,
+          lng: longitude,
+          timestamp: Date.now(),
+          accuracy: accuracy
+        }));
+
         if (!mapRef.current) return;
         
         // Fly to location smoothly
