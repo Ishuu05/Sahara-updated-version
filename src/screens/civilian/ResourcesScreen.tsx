@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, MapPin, Package, Shield, ExternalLink, Navigation, Search, Heart, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SAFE_ZONES } from '../../data/safeZones';
+import { SAFE_ZONES, fetchNearbySafeZones, SafeZone } from '../../data/safeZones';
 import { useLocation } from '../../hooks/useLocation';
 import { getDistance, formatDistance } from '../../utils/haversine';
 import { subscribeToResources } from '../../services/firestoreService';
@@ -14,7 +14,8 @@ type Tab = 'contacts' | 'relief' | 'gov';
 export const ResourcesScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('contacts');
   const [govResources, setGovResources] = useState<any[]>([]);
-  const location = useLocation();
+const [nearbyZones, setNearbyZones] = useState<SafeZone[]>(SAFE_ZONES);
+const location = useLocation();
   const isOnline = useOnlineStatus();
   const navigate = useNavigate();
 
@@ -25,6 +26,14 @@ export const ResourcesScreen: React.FC = () => {
         localStorage.setItem('sahara_cached_resources', JSON.stringify(data));
       }
     });
+
+    useEffect(() => {
+  if (location.lat && location.lng) {
+    fetchNearbySafeZones(location.lat, location.lng)
+      .then(zones => setNearbyZones(zones))
+      .catch(() => setNearbyZones(SAFE_ZONES));
+  }
+}, [location.lat, location.lng]);
 
     const cached = localStorage.getItem('sahara_cached_resources');
     if (cached) {
@@ -47,7 +56,7 @@ export const ResourcesScreen: React.FC = () => {
     { name: 'Coast Guard', number: '1554', icon: Shield, color: 'bg-secondary' },
   ];
 
-  const sortedSafeZones = [...SAFE_ZONES].map(zone => ({
+  const sortedSafeZones = [...nearbyZones].map(zone => ({
     ...zone,
     distance: getDistance(location.lat, location.lng, zone.lat, zone.lng)
   })).sort((a, b) => a.distance - b.distance);
