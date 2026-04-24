@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, MapPin, Package, Shield, ExternalLink, Navigation, Search, Heart, WifiOff } from 'lucide-react';
+import { Phone, Package, Shield, Navigation, Heart, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SAFE_ZONES, fetchNearbySafeZones, SafeZone } from '../../data/safeZones';
+import { SAFE_ZONES, SafeZone } from '../../data/safeZones';
 import { useLocation } from '../../hooks/useLocation';
 import { getDistance, formatDistance } from '../../utils/haversine';
 import { subscribeToResources } from '../../services/firestoreService';
@@ -14,8 +14,7 @@ type Tab = 'contacts' | 'relief' | 'gov';
 export const ResourcesScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('contacts');
   const [govResources, setGovResources] = useState<any[]>([]);
-const [nearbyZones, setNearbyZones] = useState<SafeZone[]>(SAFE_ZONES);
-const location = useLocation();
+  const location = useLocation();
   const isOnline = useOnlineStatus();
   const navigate = useNavigate();
 
@@ -26,26 +25,10 @@ const location = useLocation();
         localStorage.setItem('sahara_cached_resources', JSON.stringify(data));
       }
     });
-
-   useEffect(() => {
-  const isDefaultLocation = location.lat === 20.5937 && location.lng === 78.9629;
-  if (location.lat && location.lng && !location.loading && !isDefaultLocation) {
-    fetchNearbySafeZones(location.lat, location.lng)
-      .then(zones => {
-        if (zones.length > 0) {
-          setNearbyZones(zones);
-        } else {
-          setNearbyZones(SAFE_ZONES);
-        }
-      })
-      .catch(() => setNearbyZones(SAFE_ZONES));
-  }
-}, [location.lat, location.lng, location.loading]);
     const cached = localStorage.getItem('sahara_cached_resources');
     if (cached) {
       setGovResources(JSON.parse(cached));
     }
-
     return unsub;
   }, []);
 
@@ -62,7 +45,7 @@ const location = useLocation();
     { name: 'Coast Guard', number: '1554', icon: Shield, color: 'bg-secondary' },
   ];
 
-  const sortedSafeZones = [...nearbyZones].map(zone => ({
+  const sortedSafeZones = [...SAFE_ZONES].map(zone => ({
     ...zone,
     distance: getDistance(location.lat, location.lng, zone.lat, zone.lng)
   })).sort((a, b) => a.distance - b.distance);
@@ -80,10 +63,8 @@ const location = useLocation();
 
   return (
     <div className="min-h-screen bg-bg pb-24">
-      {/* Header */}
       <header className="bg-surface px-6 pt-12 pb-2 border-b border-border sticky top-0 z-[1001]">
         <h1 className="font-display text-2xl font-black text-text mb-6">Resources</h1>
-        
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
           {[
             { id: 'contacts', label: 'Emergency Contacts' },
@@ -95,8 +76,8 @@ const location = useLocation();
               onClick={() => setActiveTab(tab.id as Tab)}
               className={clsx(
                 "px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border",
-                activeTab === tab.id 
-                  ? "bg-primary border-primary text-white shadow-lg shadow-primary/20" 
+                activeTab === tab.id
+                  ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
                   : "bg-surface border-border text-text-secondary"
               )}
             >
@@ -115,11 +96,10 @@ const location = useLocation();
             exit={{ opacity: 0, y: -10 }}
             className="space-y-4"
           >
-            {/* SUB-TAB 1: EMERGENCY CONTACTS */}
             {activeTab === 'contacts' && (
               <div className="grid grid-cols-1 gap-3">
                 {emergencyContacts.map((contact) => (
-                  <a
+                  
                     key={contact.number}
                     href={`tel:${contact.number}`}
                     className="bg-surface p-5 rounded-[24px] border border-border shadow-sm flex items-center justify-between active:scale-98 transition-all group"
@@ -141,7 +121,6 @@ const location = useLocation();
               </div>
             )}
 
-            {/* SUB-TAB 2: RELIEF CENTERS */}
             {activeTab === 'relief' && (
               <div className="space-y-3">
                 {sortedSafeZones.map((zone) => (
@@ -163,15 +142,14 @@ const location = useLocation();
                         <p className="text-[10px] font-bold text-text-secondary/50 uppercase tracking-widest">Away</p>
                       </div>
                     </div>
-                    
                     <div className="flex gap-2 mt-4 pt-4 border-t border-border">
-                      <a 
+                      
                         href={`tel:${zone.phone}`}
                         className="flex-1 h-12 bg-bg border border-border rounded-2xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-text active:scale-95 transition-all"
                       >
                         <Phone size={14} /> Call
                       </a>
-                      <button 
+                      <button
                         onClick={() => navigate('/civilian/map', { state: { center: [zone.lat, zone.lng] } })}
                         className="flex-1 h-12 bg-primary text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-md shadow-primary/20"
                       >
@@ -183,7 +161,6 @@ const location = useLocation();
               </div>
             )}
 
-            {/* SUB-TAB 3: GOVERNMENT RESOURCES */}
             {activeTab === 'gov' && (
               <div className="space-y-4">
                 {!isOnline && (
@@ -192,7 +169,6 @@ const location = useLocation();
                     <p className="text-xs font-bold text-warning-dark">Offline — Showing cached data</p>
                   </div>
                 )}
-                
                 {resourcesToShow.map((r, i) => (
                   <div key={i} className="bg-surface p-6 rounded-[32px] border border-border shadow-sm flex items-center gap-4">
                     <div className="w-14 h-14 bg-bg rounded-2xl flex items-center justify-center flex-shrink-0 border border-border">
