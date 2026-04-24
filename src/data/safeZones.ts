@@ -25,8 +25,7 @@ export async function fetchNearbySafeZones(lat: number, lng: number): Promise<Sa
     out body;
   `;
 
-  const encodedQuery = encodeURIComponent(query);
-const response = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodedQuery}`);
+  const response = await fetch(`/api/nearby?lat=${lat}&lng=${lng}`);
   
 
   const data = await response.json();
