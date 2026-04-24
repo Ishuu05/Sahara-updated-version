@@ -99,7 +99,7 @@ export const ResourcesScreen: React.FC = () => {
             {activeTab === 'contacts' && (
               <div className="grid grid-cols-1 gap-3">
                 {emergencyContacts.map((contact) => (
-                  
+                  <a
                     key={contact.number}
                     href={`tel:${contact.number}`}
                     className="bg-surface p-5 rounded-[24px] border border-border shadow-sm flex items-center justify-between active:scale-98 transition-all group"
