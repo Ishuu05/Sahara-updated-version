@@ -98,6 +98,7 @@ export const ResourcesScreen: React.FC = () => {
           >
             {activeTab === 'contacts' && (
               <div className="grid grid-cols-1 gap-3">
+                <a
                 {emergencyContacts.map((contact) => (
                   
                     key={contact.number}
@@ -143,7 +144,7 @@ export const ResourcesScreen: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4 pt-4 border-t border-border">
-                      
+                      <a
                         href={`tel:${zone.phone}`}
                         className="flex-1 h-12 bg-bg border border-border rounded-2xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-text active:scale-95 transition-all"
                       >
