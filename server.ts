@@ -74,6 +74,20 @@ If the user asks non-emergency or casual questions, respond politely as Sahara A
     }
   });
 
+  app.get("/api/nearby", async (req, res) => {
+  const { lat, lng } = req.query;
+  const radius = 10000;
+  const query = `[out:json][timeout:25];(node["amenity"="hospital"](around:${radius},${lat},${lng});node["amenity"="clinic"](around:${radius},${lat},${lng});node["amenity"="police"](around:${radius},${lat},${lng}););out body;`;
+  
+  try {
+    const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ elements: [] });
+  }
+});
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
