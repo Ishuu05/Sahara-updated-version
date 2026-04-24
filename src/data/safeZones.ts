@@ -25,10 +25,9 @@ export async function fetchNearbySafeZones(lat: number, lng: number): Promise<Sa
     out body;
   `;
 
-  const response = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: query,
-  });
+  const encodedQuery = encodeURIComponent(query);
+const response = await fetch(`https://overpass.kumi.systems/api/interpreter?data=${encodedQuery}`);
+  
 
   const data = await response.json();
 
