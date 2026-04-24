@@ -27,14 +27,20 @@ const location = useLocation();
       }
     });
 
-    useEffect(() => {
-  if (location.lat && location.lng) {
+   useEffect(() => {
+  const isDefaultLocation = location.lat === 20.5937 && location.lng === 78.9629;
+  if (location.lat && location.lng && !location.loading && !isDefaultLocation) {
     fetchNearbySafeZones(location.lat, location.lng)
-      .then(zones => setNearbyZones(zones))
+      .then(zones => {
+        if (zones.length > 0) {
+          setNearbyZones(zones);
+        } else {
+          setNearbyZones(SAFE_ZONES);
+        }
+      })
       .catch(() => setNearbyZones(SAFE_ZONES));
   }
-}, [location.lat, location.lng]);
-
+}, [location.lat, location.lng, location.loading]);
     const cached = localStorage.getItem('sahara_cached_resources');
     if (cached) {
       setGovResources(JSON.parse(cached));
