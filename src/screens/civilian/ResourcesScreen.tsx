@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, Package, Shield, Navigation, Heart, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SAFE_ZONES, SafeZone } from '../../data/safeZones';
+import { SAFE_ZONES } from '../../data/safeZones';
 import { useLocation } from '../../hooks/useLocation';
 import { getDistance, formatDistance } from '../../utils/haversine';
 import { subscribeToResources } from '../../services/firestoreService';
@@ -99,7 +99,7 @@ export const ResourcesScreen: React.FC = () => {
             {activeTab === 'contacts' && (
               <div className="grid grid-cols-1 gap-3">
                 {emergencyContacts.map((contact) => (
-                  <a
+                  
                     key={contact.number}
                     href={`tel:${contact.number}`}
                     className="bg-surface p-5 rounded-[24px] border border-border shadow-sm flex items-center justify-between active:scale-98 transition-all group"
